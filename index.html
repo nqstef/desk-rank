@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Desk Rank">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#eceff4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d121b" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%}body{margin:0;-webkit-tap-highlight-color:transparent}[hidden]{display:none!important}</style>
+<title>Desk Rank</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one career-ladder header band, then today's blotter on the left and the season on the right; stacks to one column on a phone. */
+:root{
+  --bg:#eceff4; --surface:#f8f9fb; --line:#d3d9e3; --ink:#101a2b; --muted:#5a6679;
+  --accent:#2447d6; --accent-ink:#ffffff; --good:#17804f; --bad:#c2352b; --gold:#a86a12; --wash:#dfe5f7;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d121b; --surface:#151c29; --line:#28324a; --ink:#e6ebf3; --muted:#93a0b6;
+  --accent:#7d9bff; --accent-ink:#0d121b; --good:#4cc38a; --bad:#f2675d; --gold:#e3b356; --wash:#1c2740; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0d121b; --surface:#151c29; --line:#28324a; --ink:#e6ebf3; --muted:#93a0b6;
+  --accent:#7d9bff; --accent-ink:#0d121b; --good:#4cc38a; --bad:#f2675d; --gold:#e3b356; --wash:#1c2740; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1060px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* header */
+.head{display:flex;flex-direction:column;gap:12px}
+.head-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.rank{font-family:var(--display);font-stretch:118%;font-weight:850;font-size:clamp(34px,9vw,60px);line-height:.98;letter-spacing:-.01em;margin:2px 0 0;text-wrap:balance}
+.bar{height:10px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);transition:width .35s ease}
+.bar-cap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stat{padding:10px 12px 10px 0}
+.stat+.stat{padding-left:12px;border-left:1px solid var(--line)}
+.stat b{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:600}
+.verdict{font-size:14px;color:var(--muted)}
+.verdict b{color:var(--ink);font-weight:600}
+.sync{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+@media (min-width:880px){ .cols{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)} }
+.side{display:flex;flex-direction:column;gap:26px;min-width:0}
+section{min-width:0}
+h2{font-family:var(--display);font-stretch:112%;font-weight:750;font-size:18px;margin:0 0 10px}
+
+/* day */
+.daynav{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.daynav h2{margin:0;flex:1;min-width:0}
+.daynav .sub{display:block;font-family:var(--body);font-stretch:100%;font-weight:400;font-size:13px;color:var(--muted)}
+.nav{min-width:40px;height:40px;border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:0 10px}
+.nav:disabled{opacity:.35;cursor:default}
+.meter{position:relative;height:8px;background:var(--line);border-radius:2px;margin:4px 0 6px}
+.meter>i{display:block;height:100%;border-radius:2px;background:var(--muted);transition:width .3s ease}
+.meter.held>i{background:var(--good)}
+.meter>s{position:absolute;left:70%;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.meter-cap{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:12px;gap:10px;flex-wrap:wrap}
+
+.tasks{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.task{display:grid;grid-template-columns:52px minmax(0,1fr) auto 44px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.task .t{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.task .n{font-weight:500}
+.task .d{display:block;font-size:12.5px;color:var(--muted);font-weight:400}
+.task .x{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);text-align:right;white-space:nowrap}
+.tick{width:44px;height:44px;border-radius:4px;border:2px solid var(--muted);background:transparent;display:grid;place-items:center;font-size:20px;line-height:1;color:transparent}
+.task.done .tick{background:var(--good);border-color:var(--good);color:var(--bg)}
+.task.done .n{color:var(--muted)}
+.task.done .nm{text-decoration:line-through;text-decoration-thickness:1px}
+.task.done .x{color:var(--good)}
+.task.locked .tick,.task.missed .tick{border-style:dashed;border-color:var(--line);cursor:default}
+.task.locked .n{color:var(--muted)}
+.task.missed .x{color:var(--bad)}
+.task.missed .tick{color:var(--bad);font-size:16px}
+.task.rest{grid-template-columns:52px minmax(0,1fr)}
+.task.rest .n{font-weight:400;color:var(--muted);font-style:italic}
+.task.now{background:var(--wash);margin-inline:-8px;padding-inline:8px;border-radius:4px}
+.k{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;background:var(--muted);vertical-align:1px}
+.k.f,.k.c{background:var(--accent)} .k.t{background:var(--gold)} .k.g{background:var(--good)} .k.a{background:var(--ink)}
+
+/* contracts */
+.contract{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:8px 0;border-bottom:1px solid var(--line);align-items:center}
+.contract:first-of-type{border-top:1px solid var(--line)}
+.contract .bar{grid-column:1/-1;height:6px}
+.contract.met .bar>i{background:var(--good)}
+.contract.met .num{color:var(--good)}
+
+/* season grid */
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dow{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-align:center;padding-bottom:2px}
+.cell{aspect-ratio:1;max-width:100%;border:1px solid var(--line);border-radius:3px;background:var(--surface);font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;padding:0;display:grid;place-items:center;position:relative}
+.cell.pre{opacity:.3}
+.cell.perfect{background:var(--good);border-color:var(--good);color:var(--bg);font-weight:600}
+.cell.held{border-color:var(--good);color:var(--good);border-width:2px;font-weight:600}
+.cell.broken{border-color:var(--bad);color:var(--bad)}
+.cell.failed{background:var(--bad);border-color:var(--bad);color:var(--bg)}
+.cell.sel{outline:2px solid var(--accent);outline-offset:1px}
+.cell.today::after{content:"";position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%;background:currentColor}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:2px;border:1px solid var(--line);display:inline-block}
+
+/* ladder */
+.ladder{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.ladder li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--muted)}
+.ladder li.got{color:var(--ink)}
+.ladder li.cur{font-weight:600;color:var(--accent)}
+.rules{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:5px}
+.rules b{color:var(--ink);font-weight:600}
+.reset{margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.reset button{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:8px 12px;min-height:40px}
+.reset .danger{border-color:var(--bad);color:var(--bad)}
+
+.backup{display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:var(--muted)}
+.backup textarea{width:100%;min-height:64px;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);padding:8px}
+.backup .row{display:flex;gap:8px;flex-wrap:wrap}
+.backup button{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:8px 12px;min-height:40px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:4px;font-family:var(--display);font-stretch:112%;font-weight:700;font-size:16px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:calc(100% - 32px);text-align:center;z-index:20}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div class="head-top"><span class="label">Desk rank · Term 1 season</span><span class="sync" id="sync">Saved on this phone</span></div>
+    <h1 class="rank" id="rank">Intern</h1>
+    <div class="bar" role="progressbar" aria-label="Progress to next rank" id="rankbar"><i style="width:0%"></i></div>
+    <div class="bar-cap"><span class="num" id="xpline">0 XP</span><span id="nextline"></span></div>
+    <div class="stats">
+      <div class="stat"><span class="label">Streak</span><b id="s-streak">0 days</b></div>
+      <div class="stat"><span class="label">Multiplier</span><b id="s-mult">x1.00</b></div>
+      <div class="stat"><span class="label">Today</span><b id="s-today">0%</b></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+  </header>
+
+  <div class="cols">
+    <section>
+      <div class="daynav">
+        <button class="nav" id="prev" aria-label="Previous day">&larr;</button>
+        <h2 id="daytitle">Today</h2>
+        <button class="nav" id="totoday">Today</button>
+        <button class="nav" id="next" aria-label="Next day">&rarr;</button>
+      </div>
+      <div class="meter" id="meter"><i style="width:0%"></i><s title="70% holds the streak"></s></div>
+      <div class="meter-cap"><span id="metercap"></span><span>Line at 70%: hold the streak</span></div>
+      <ul class="tasks" id="tasks"></ul>
+    </section>
+
+    <div class="side">
+      <section>
+        <h2>This week's contracts</h2>
+        <div id="contracts"></div>
+      </section>
+      <section>
+        <h2>Season, 10 Nov to 13 Dec</h2>
+        <div class="grid" id="grid"></div>
+        <div class="legend">
+          <span><i style="background:var(--good);border-color:var(--good)"></i>Perfect</span>
+          <span><i style="border:2px solid var(--good)"></i>Held</span>
+          <span><i style="border-color:var(--bad)"></i>Streak broken</span>
+          <span><i style="background:var(--bad);border-color:var(--bad)"></i>Failed</span>
+        </div>
+      </section>
+      <section>
+        <h2>The ladder</h2>
+        <ol class="ladder" id="ladder"></ol>
+      </section>
+      <section>
+        <h2>Rules</h2>
+        <ul class="rules">
+          <li>A block unlocks at its start time. <b>You cannot tick the future.</b></li>
+          <li>Yesterday stays open until <b>12:00</b> today, then it locks for good.</li>
+          <li>Finish <b>70%</b> of a day's XP to hold your streak. Each streak day adds 5% to everything you earn, up to x1.50.</li>
+          <li>A perfect day pays a <b>50 XP</b> bonus.</li>
+          <li>Under 70% breaks the streak. Under 40% also costs <b>75 XP</b>, and you can be demoted.</li>
+          <li>Each weekly contract pays <b>100 XP</b>.</li>
+          <li>Free time is free. It carries no XP and never counts against you.</li>
+        </ul>
+        <div class="reset" id="resetbox"><button id="reset1">Restart the season</button></div>
+      </section>
+      <section>
+        <h2>Backup</h2>
+        <div class="backup">
+          <span>Progress is stored on this phone only. Copy a backup code now and then, and keep it in Notes.</span>
+          <div class="row"><button id="bk-copy">Copy backup code</button><button id="bk-restore">Restore from code</button></div>
+          <label for="bk-code">Backup code</label>
+          <textarea id="bk-code" spellcheck="false" autocomplete="off" placeholder="Paste a backup code here, then press Restore"></textarea>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DAYS = {"2026-11-10":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","09:00","Plan the day + emails","Inbox, check deadlines, pack lunch.","w",15],["09:10","09:42","92 to Park","Be at the Bay Campus stop by a few minutes before 09:10. Prep for Maths seminar.","b",5],["10:00","11:00","Maths seminar","In the room, notes taken, phone away.","c",40],["11:00","12:30","Library: uni work","Problem sets / seminar prep. Stay on campus.","f",40],["12:30","13:00","Lunch","Packed lunch.","b",5],["13:00","15:00","Social Scientist lecture","In the room, notes taken, phone away.","c",40],["15:10","15:43","92 to Bay","Social Scientist reading.","b",5],["15:45","16:00","Put a wash on","Everything that's piled up. Snack while it starts.","h",20],["16:00","16:45","Deep clean bathroom","Toilet, sink, shower, mirror, floor, bin. Swap washing to the dryer when done.","h",20],["16:45","17:45","Trading review + Kose","Moved from 16:30.","t",25],["17:45","18:30","Fold + put away laundry","Everything away tonight, not left on the chair.","h",20],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-11":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Internship apps / OCaml / uni.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10. Skim Micro reading before the lecture.","b",5],["11:00","13:00","Micro lecture","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","","b",5],["13:45","14:30","Lunch + pre-market prep","Eat, mark levels, check news/calendar.","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Gym","","g",35],["17:30","18:30","Admin + job hunt","Moved from Tuesday. Laundry already done this week.","w",30],["18:30","19:30","Cook + dinner","Cook fresh tonight.","h",15],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-12":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:10","08:41","92 to Park","Be at the Bay Campus stop by a few minutes before 08:10. Earliest class of the week. Don't miss this one: next bus is 09:10.","b",5],["09:00","10:00","Maths seminar","In the room, notes taken, phone away.","c",40],["10:00","12:00","Library: uni work","Two solid hours. Do the hardest module here.","f",40],["12:00","13:00","Micro workshop","In the room, notes taken, phone away.","c",40],["13:00","14:00","Lunch on campus","","b",5],["14:00","16:00","Social Scientist workshop","In the room, notes taken, phone away.","c",40],["16:10","16:43","92 to Bay","No trading today (SSR workshop).","b",5],["16:45","17:30","Snack + reset","","b",5],["17:30","18:30","Clean room","Hoover, change towels, clear desk, take bins out.","h",20],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Social / society night","Investment & Finance Society, friends, or flex.","r",0],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-13":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Finish whatever is left from the week.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10.","b",5],["11:00","12:00","Micro workshop","In the room, notes taken, phone away.","c",40],["12:10","12:43","92 to Bay","","b",5],["12:45","13:30","Lunch","","b",5],["13:30","14:30","Pre-market prep + Kose admin","","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:00","Weekly trade journal","Stats, mistakes, one thing to fix next week.","t",30],["17:00","18:00","Gym","","g",35],["18:00","19:00","Dinner","Cook or treat yourself.","b",5],["19:00","23:30","Free: Friday night","Off. No work.","r",0]],"2026-11-14":[["00:00","00:15","Lights out","Later night OK, still up at 08:00 Sat.","a",25],["08:00","09:00","Wake + breakfast","Within an hour of your weekday alarm.","a",25],["09:00","10:30","Main laundry","Wash, dry, fold, put away. Bedsheets every other week.","h",20],["10:30","11:30","Weekly food shop","Use the list made on Sunday night. Buy for Sun meal prep.","h",20],["11:30","12:00","Put shopping away","","h",10],["12:00","13:00","Gym","","g",35],["13:00","14:00","Lunch","","b",5],["14:00","23:30","Free","Friends, explore Swansea, rest.","r",0]],"2026-11-15":[["00:00","00:15","Lights out","","a",25],["08:00","09:00","Wake + breakfast","","a",25],["09:00","10:00","Deep clean","Bathroom, kitchen surfaces, fridge check, bins out.","h",20],["10:00","12:00","Content batch","Film/edit TikTok + YouTube for the week.","w",30],["12:00","13:00","Lunch","","b",5],["13:00","15:00","Meal prep","Mon–Thu packed lunches + Tue & Thu dinners. Box them up.","h",25],["15:00","17:00","Uni catch-up","Readings for the week ahead, anything missed.","f",40],["17:00","19:00","Free","","r",0],["19:00","19:30","Weekly plan","Review the week, set 1 goal per project, check shifts/deadlines, write next shopping list.","w",30],["19:30","22:00","Free","","r",0],["22:00","23:00","Wind down","","n",10],["23:00","23:15","Lights out","Alarm 07:00.","a",25]],"2026-11-16":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work 1","Biggest task of the week: internship applications / OCaml market-making sim.","f",40],["10:00","10:15","Break","","b",5],["10:15","11:30","Deep work 2","Continue, or uni problem sets.","f",40],["11:30","12:00","Lunch","Prepped lunch from Sunday.","b",5],["12:10","12:42","92 to Park","Be at the Bay Campus stop by a few minutes before 12:10. Review last week's Maths for Econ notes on the way.","b",5],["13:00","15:00","Maths for Econ lecture","In the room, notes taken, phone away.","c",40],["15:10","15:43","92 to Bay","Re-read today's lecture slides.","b",5],["15:45","16:30","Snack + reset","","b",5],["16:30","17:30","Trading review + Kose","Review the day's NQ session (no live trading Mon), Kose admin.","t",25],["17:30","18:30","Gym","","g",35],["18:30","19:30","Cook + dinner","Cook fresh tonight.","h",15],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-17":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","09:00","Plan the day + emails","Inbox, check deadlines, pack lunch.","w",15],["09:10","09:42","92 to Park","Be at the Bay Campus stop by a few minutes before 09:10. Prep for Maths seminar.","b",5],["10:00","11:00","Maths seminar","In the room, notes taken, phone away.","c",40],["11:00","12:30","Library: uni work","Problem sets / seminar prep. Stay on campus.","f",40],["12:30","13:00","Lunch","Packed lunch.","b",5],["13:00","15:00","Social Scientist lecture","In the room, notes taken, phone away.","c",40],["15:10","15:43","92 to Bay","Social Scientist reading.","b",5],["15:45","16:30","Snack + reset","","b",5],["16:30","17:30","Trading review + Kose","No live trading Tue.","t",25],["17:30","18:30","Admin + job hunt","Part-time job applications, bills, emails, life admin.","w",30],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-18":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Internship apps / OCaml / uni.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10. Skim Micro reading before the lecture.","b",5],["11:00","13:00","Micro lecture","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","","b",5],["13:45","14:30","Lunch + pre-market prep","Eat, mark levels, check news/calendar.","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Gym","","g",35],["17:30","18:30","Laundry (mid-week) + bathroom wipe","Gym kit + towels. Quick wipe of sink/toilet.","h",20],["18:30","19:30","Cook + dinner","Cook fresh tonight.","h",15],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-19":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:10","08:41","92 to Park","Be at the Bay Campus stop by a few minutes before 08:10. Earliest class of the week. Don't miss this one: next bus is 09:10.","b",5],["09:00","10:00","Maths seminar","In the room, notes taken, phone away.","c",40],["10:00","12:00","Library: uni work","Two solid hours. Do the hardest module here.","f",40],["12:00","13:00","Micro workshop","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","Eat your packed lunch on the bus.","b",5],["13:45","14:30","Pre-market prep","","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Kose","Mentorship/community, Discord.","w",25],["17:30","18:30","Clean room","Hoover, change towels, clear desk, take bins out.","h",20],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Social / society night","Investment & Finance Society, friends, or flex.","r",0],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-20":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Finish whatever is left from the week.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10.","b",5],["11:00","12:00","Micro workshop","In the room, notes taken, phone away.","c",40],["12:00","12:30","Grab bag + snacks","Pack on Thursday night so you can leave straight after the workshop.","h",10],["12:30","17:30","Travel home","Take a proper food stop halfway. Bring dirty laundry home.","b",5],["17:30","23:30","Home: free","","r",0]],"2026-11-21":[["00:00","00:15","Lights out","","a",25],["08:00","09:00","Wake + breakfast","","a",25],["09:00","10:30","Laundry at home","Wash everything you brought back.","h",20],["10:30","23:30","Home: free","Family, friends, rest.","r",0]],"2026-11-22":[["00:00","00:15","Lights out","","a",25],["08:00","09:00","Wake + breakfast","","a",25],["10:00","12:00","Content batch","Film at home if you can, otherwise move to Mon evening.","w",30],["15:00","16:30","Uni catch-up","Readings for the week.","f",40],["19:00","19:30","Weekly plan + shopping list","Write the list for Monday's shop.","w",30],["19:30","21:00","Pack for tomorrow","Clean laundry, laptop, charger, uni stuff.","h",15],["21:00","22:00","Wind down","Early night, early start.","n",10],["22:00","22:15","Lights out","Alarm 06:30.","a",25]],"2026-11-23":[["06:30","07:15","Get ready (quick) + breakfast","","a",25],["07:30","12:30","Travel back to Swansea (Park campus)","Aim to arrive by 12:30 for the 13:00 lecture.","b",5],["12:30","13:00","Lunch","","b",5],["13:00","15:00","Maths for Econ lecture","In the room, notes taken, phone away.","c",40],["15:00","15:45","Get back to Bay","92 at 15:10 if you're not driving.","b",5],["16:00","17:00","Food shop","No Saturday shop this week. Use Sunday's list.","h",20],["17:00","17:30","Unpack + put shopping away","","h",10],["17:30","18:30","Batch cook","Double batch: tonight + Tue & Thu dinners.","h",25],["18:30","19:30","Dinner","","b",5],["19:30","21:30","Light evening","Long day. Content edit only if you have the energy.","r",0],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-24":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","09:00","Plan the day + emails","Inbox, check deadlines, pack lunch.","w",15],["09:10","09:42","92 to Park","Be at the Bay Campus stop by a few minutes before 09:10. Prep for Maths seminar.","b",5],["10:00","11:00","Maths seminar","In the room, notes taken, phone away.","c",40],["11:00","12:30","Library: uni work","Problem sets / seminar prep. Stay on campus.","f",40],["12:30","13:00","Lunch","Packed lunch.","b",5],["13:00","15:00","Social Scientist lecture","In the room, notes taken, phone away.","c",40],["15:10","15:43","92 to Bay","Social Scientist reading.","b",5],["15:45","16:30","Snack + reset","","b",5],["16:30","17:30","Trading review + Kose","No live trading Tue.","t",25],["17:30","18:30","Admin + job hunt","Part-time job applications, bills, emails, life admin.","w",30],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-25":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Internship apps / OCaml / uni.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10. Skim Micro reading before the lecture.","b",5],["11:00","13:00","Micro lecture","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","","b",5],["13:45","14:30","Lunch + pre-market prep","Eat, mark levels, check news/calendar.","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Gym","","g",35],["17:30","18:30","Laundry (mid-week) + bathroom wipe","Gym kit + towels. Quick wipe of sink/toilet.","h",20],["18:30","19:30","Cook + dinner","Cook fresh tonight.","h",15],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-26":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:10","08:41","92 to Park","Be at the Bay Campus stop by a few minutes before 08:10. Earliest class of the week. Don't miss this one: next bus is 09:10.","b",5],["09:00","10:00","Maths seminar","In the room, notes taken, phone away.","c",40],["10:00","12:00","Library: uni work","Two solid hours. Do the hardest module here.","f",40],["12:00","13:00","Micro workshop","In the room, notes taken, phone away.","c",40],["13:00","14:00","Lunch on campus","","b",5],["14:00","16:00","Social Scientist workshop","In the room, notes taken, phone away.","c",40],["16:10","16:43","92 to Bay","No trading today (SSR workshop).","b",5],["16:45","17:30","Snack + reset","","b",5],["17:30","18:30","Clean room","Hoover, change towels, clear desk, take bins out.","h",20],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Social / society night","Investment & Finance Society, friends, or flex.","r",0],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-11-27":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Finish whatever is left from the week.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10.","b",5],["11:00","12:00","Micro workshop","In the room, notes taken, phone away.","c",40],["12:10","12:43","92 to Bay","","b",5],["12:45","13:30","Lunch","","b",5],["13:30","14:30","Pre-market prep + Kose admin","","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:00","Weekly trade journal","Stats, mistakes, one thing to fix next week.","t",30],["17:00","18:00","Gym","","g",35],["18:00","19:00","Dinner","Cook or treat yourself.","b",5],["19:00","23:30","Free: Friday night","Off. No work.","r",0]],"2026-11-28":[["00:00","00:15","Lights out","Later night OK, still up at 08:00 Sat.","a",25],["08:00","09:00","Wake + breakfast","Within an hour of your weekday alarm.","a",25],["09:00","10:30","Main laundry","Wash, dry, fold, put away. Bedsheets every other week.","h",20],["10:30","11:30","Weekly food shop","Use the list made on Sunday night. Buy for Sun meal prep.","h",20],["11:30","12:00","Put shopping away","","h",10],["12:00","13:00","Gym","","g",35],["13:00","14:00","Lunch","","b",5],["14:00","23:30","Free","Friends, explore Swansea, rest.","r",0]],"2026-11-29":[["00:00","00:15","Lights out","","a",25],["08:00","09:00","Wake + breakfast","","a",25],["09:00","10:00","Deep clean","Bathroom, kitchen surfaces, fridge check, bins out.","h",20],["10:00","12:00","Content batch","Film/edit TikTok + YouTube for the week.","w",30],["12:00","13:00","Lunch","","b",5],["13:00","15:00","Meal prep","Mon–Thu packed lunches + Tue & Thu dinners. Box them up.","h",25],["15:00","17:00","Uni catch-up","Readings for the week ahead, anything missed.","f",40],["17:00","19:00","Free","","r",0],["19:00","19:30","Weekly plan","Review the week, set 1 goal per project, check shifts/deadlines, write next shopping list.","w",30],["19:30","22:00","Free","","r",0],["22:00","23:00","Wind down","","n",10],["23:00","23:15","Lights out","Alarm 07:00.","a",25]],"2026-11-30":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work 1","Biggest task of the week: internship applications / OCaml market-making sim.","f",40],["10:00","10:15","Break","","b",5],["10:15","11:30","Deep work 2","Continue, or uni problem sets.","f",40],["11:30","12:00","Lunch","Prepped lunch from Sunday.","b",5],["12:10","12:42","92 to Park","Be at the Bay Campus stop by a few minutes before 12:10. Review last week's Maths for Econ notes on the way.","b",5],["13:00","15:00","Maths for Econ lecture","In the room, notes taken, phone away.","c",40],["15:10","15:43","92 to Bay","Re-read today's lecture slides.","b",5],["15:45","16:30","Snack + reset","","b",5],["16:30","17:30","Trading review + Kose","Review the day's NQ session (no live trading Mon), Kose admin.","t",25],["17:30","18:30","Gym","","g",35],["18:30","19:30","Cook + dinner","Cook fresh tonight.","h",15],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-01":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","09:00","Plan the day + emails","Inbox, check deadlines, pack lunch.","w",15],["09:10","09:42","92 to Park","Be at the Bay Campus stop by a few minutes before 09:10. Prep for Maths seminar.","b",5],["10:00","11:00","Maths seminar","In the room, notes taken, phone away.","c",40],["11:00","12:30","Library: uni work","Problem sets / seminar prep. Stay on campus.","f",40],["12:30","13:00","Lunch","Packed lunch.","b",5],["13:00","15:00","Social Scientist lecture","In the room, notes taken, phone away.","c",40],["15:10","15:43","92 to Bay","Social Scientist reading.","b",5],["15:45","16:30","Snack + reset","","b",5],["16:30","17:30","Trading review + Kose","No live trading Tue.","t",25],["17:30","18:30","Admin + job hunt","Part-time job applications, bills, emails, life admin.","w",30],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-02":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Internship apps / OCaml / uni.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10. Skim Micro reading before the lecture.","b",5],["11:00","13:00","Micro lecture","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","","b",5],["13:45","14:30","Lunch + pre-market prep","Eat, mark levels, check news/calendar.","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Gym","","g",35],["17:30","18:30","Laundry (mid-week) + bathroom wipe","Gym kit + towels. Quick wipe of sink/toilet.","h",20],["18:30","19:30","Cook + dinner","Cook fresh tonight.","h",15],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-03":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:10","08:41","92 to Park","Be at the Bay Campus stop by a few minutes before 08:10. Earliest class of the week. Don't miss this one: next bus is 09:10.","b",5],["09:00","10:00","Maths seminar","In the room, notes taken, phone away.","c",40],["10:00","12:00","Library: uni work","Two solid hours. Do the hardest module here.","f",40],["12:00","13:00","Micro workshop","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","Eat your packed lunch on the bus.","b",5],["13:45","14:30","Pre-market prep","","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Kose","Mentorship/community, Discord.","w",25],["17:30","18:30","Clean room","Hoover, change towels, clear desk, take bins out.","h",20],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Social / society night","Investment & Finance Society, friends, or flex.","r",0],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-04":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Finish whatever is left from the week.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10.","b",5],["11:00","12:00","Micro workshop","In the room, notes taken, phone away.","c",40],["12:00","12:30","Grab bag + snacks","Pack on Thursday night so you can leave straight after the workshop.","h",10],["12:30","17:30","Travel home","Take a proper food stop halfway. Bring dirty laundry home.","b",5],["17:30","23:30","Home: free","","r",0]],"2026-12-05":[["00:00","00:15","Lights out","","a",25],["08:00","09:00","Wake + breakfast","","a",25],["09:00","10:30","Laundry at home","Wash everything you brought back.","h",20],["10:30","23:30","Home: free","Family, friends, rest.","r",0]],"2026-12-06":[["00:00","00:15","Lights out","","a",25],["08:00","09:00","Wake + breakfast","","a",25],["10:00","12:00","Content batch","Film at home if you can, otherwise move to Mon evening.","w",30],["15:00","16:30","Uni catch-up","Readings for the week.","f",40],["19:00","19:30","Weekly plan + shopping list","Write the list for Monday's shop.","w",30],["19:30","21:00","Pack for tomorrow","Clean laundry, laptop, charger, uni stuff.","h",15],["21:00","22:00","Wind down","Early night, early start.","n",10],["22:00","22:15","Lights out","Alarm 06:30.","a",25]],"2026-12-07":[["06:30","07:15","Get ready (quick) + breakfast","","a",25],["07:30","12:30","Travel back to Swansea (Park campus)","Aim to arrive by 12:30 for the 13:00 lecture.","b",5],["12:30","13:00","Lunch","","b",5],["13:00","15:00","Maths for Econ lecture","In the room, notes taken, phone away.","c",40],["15:00","15:45","Get back to Bay","92 at 15:10 if you're not driving.","b",5],["16:00","17:00","Food shop","No Saturday shop this week. Use Sunday's list.","h",20],["17:00","17:30","Unpack + put shopping away","","h",10],["17:30","18:30","Batch cook","Double batch: tonight + Tue & Thu dinners.","h",25],["18:30","19:30","Dinner","","b",5],["19:30","21:30","Light evening","Long day. Content edit only if you have the energy.","r",0],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-08":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","09:00","Plan the day + emails","Inbox, check deadlines, pack lunch.","w",15],["09:10","09:42","92 to Park","Be at the Bay Campus stop by a few minutes before 09:10. Prep for Maths seminar.","b",5],["10:00","11:00","Maths seminar","In the room, notes taken, phone away.","c",40],["11:00","12:30","Library: uni work","Problem sets / seminar prep. Stay on campus.","f",40],["12:30","13:00","Lunch","Packed lunch.","b",5],["13:00","15:00","Social Scientist lecture","In the room, notes taken, phone away.","c",40],["15:10","15:43","92 to Bay","Social Scientist reading.","b",5],["15:45","16:30","Snack + reset","","b",5],["16:30","17:30","Trading review + Kose","No live trading Tue.","t",25],["17:30","18:30","Admin + job hunt","Part-time job applications, bills, emails, life admin.","w",30],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-09":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Internship apps / OCaml / uni.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10. Skim Micro reading before the lecture.","b",5],["11:00","13:00","Micro lecture","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","","b",5],["13:45","14:30","Lunch + pre-market prep","Eat, mark levels, check news/calendar.","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Gym","","g",35],["17:30","18:30","Laundry (mid-week) + bathroom wipe","Gym kit + towels. Quick wipe of sink/toilet.","h",20],["18:30","19:30","Cook + dinner","Cook fresh tonight.","h",15],["19:30","21:30","Flex: content / Kose","Or part-time shift.","w",20],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-10":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:10","08:41","92 to Park","Be at the Bay Campus stop by a few minutes before 08:10. Earliest class of the week. Don't miss this one: next bus is 09:10.","b",5],["09:00","10:00","Maths seminar","In the room, notes taken, phone away.","c",40],["10:00","12:00","Library: uni work","Two solid hours. Do the hardest module here.","f",40],["12:00","13:00","Micro workshop","In the room, notes taken, phone away.","c",40],["13:10","13:43","92 to Bay","Eat your packed lunch on the bus.","b",5],["13:45","14:30","Pre-market prep","","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:30","Kose","Mentorship/community, Discord.","w",25],["17:30","18:30","Clean room","Hoover, change towels, clear desk, take bins out.","h",20],["18:30","19:30","Dinner","Prepped dinner from Sunday.","b",5],["19:30","21:30","Social / society night","Investment & Finance Society, friends, or flex.","r",0],["21:30","22:00","Kitchen reset + pack bag","Wash up, wipe sides, pack bag/laptop/charger and lunch for tomorrow, lay out clothes.","h",15],["22:00","23:00","Wind down","No charts, no work. Read, call someone, stretch.","n",10],["23:00","23:15","Lights out","8 hours before the 07:00 alarm.","a",25]],"2026-12-11":[["07:00","08:00","Get ready + breakfast","Shower, dress, eat. Breakfast idea: oats/eggs + fruit. Phone stays off socials.","a",25],["08:00","10:00","Deep work","Finish whatever is left from the week.","f",40],["10:10","10:42","92 to Park","Be at the Bay Campus stop by a few minutes before 10:10.","b",5],["11:00","12:00","Micro workshop","In the room, notes taken, phone away.","c",40],["12:10","12:43","92 to Bay","","b",5],["12:45","13:30","Lunch","","b",5],["13:30","14:30","Pre-market prep + Kose admin","","t",20],["14:30","16:30","Trade the US open","","t",40],["16:30","17:00","Weekly trade journal","Stats, mistakes, one thing to fix next week.","t",30],["17:00","18:00","Gym","","g",35],["18:00","19:00","Dinner","Cook or treat yourself.","b",5],["19:00","23:30","Free: Friday night","Off. No work.","r",0]],"2026-12-12":[["00:00","00:15","Lights out","Later night OK, still up at 08:00 Sat.","a",25],["08:00","09:00","Wake + breakfast","Within an hour of your weekday alarm.","a",25],["09:00","10:30","Main laundry","Wash, dry, fold, put away. Bedsheets every other week.","h",20],["10:30","11:30","Weekly food shop","Use the list made on Sunday night. Buy for Sun meal prep.","h",20],["11:30","12:00","Put shopping away","","h",10],["12:00","13:00","Gym","","g",35],["13:00","14:00","Lunch","","b",5],["14:00","23:30","Free","Friends, explore Swansea, rest.","r",0]],"2026-12-13":[["00:00","00:15","Lights out","","a",25],["08:00","09:00","Wake + breakfast","","a",25],["09:00","10:00","Deep clean","Bathroom, kitchen surfaces, fridge check, bins out.","h",20],["10:00","12:00","Content batch","Film/edit TikTok + YouTube for the week.","w",30],["12:00","13:00","Lunch","","b",5],["13:00","15:00","Meal prep","Mon–Thu packed lunches + Tue & Thu dinners. Box them up.","h",25],["15:00","17:00","Uni catch-up","Readings for the week ahead, anything missed.","f",40],["17:00","19:00","Free","","r",0],["19:00","19:30","Weekly plan","Review the week, set 1 goal per project, check shifts/deadlines, write next shopping list.","w",30],["19:30","22:00","Free","","r",0],["22:00","23:00","Wind down","","n",10],["23:00","23:15","Lights out","Alarm 07:00.","a",25]]};
+const RANKS = ['Intern','Analyst','Associate','Trader','Senior Trader','Portfolio Manager','Partner'];
+const FRAC = [0,.07,.2,.38,.6,.85,1.15];
+const HOLD = .7, FAIL = .4, PENALTY = 75, PERFECT = 50, CONTRACT = 100;
+const CONTRACTS = [['f','Focus blocks','Deep work, library, uni catch-up'],['c','Classes','Lectures, seminars, workshops'],['g','Gym sessions','']];
+const DATES = Object.keys(DAYS).sort(), FIRST = DATES[0], END = DATES[DATES.length-1];
+const KEY = 'desk-rank-v1';
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const iso = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return iso(d); };
+const mondayOf = s => addDays(s, -((parse(s).getDay()+6)%7));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const now = () => window.__now ? new Date(window.__now) : new Date();
+const clampDate = d => d < FIRST ? FIRST : d > END ? END : d;
+const fmtDay = s => parse(s).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
+
+function fresh(){ return {v:1, start: clampDate(iso(now())), done:{}, t:0}; }
+function normalize(r){
+  if(!r || typeof r !== 'object' || typeof r.start !== 'string') return null;
+  const done = {};
+  if(r.done && typeof r.done === 'object') for(const d of Object.keys(r.done)) if(DAYS[d] && Array.isArray(r.done[d])) done[d] = r.done[d].filter(x => typeof x === 'string');
+  return {v:1, start: clampDate(r.start), done, t: Number(r.t)||0};
+}
+function loadLocal(){ try{ return normalize(JSON.parse(localStorage.getItem(KEY))); }catch(e){ return null; } }
+function saveLocal(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+let state = loadLocal() || fresh();
+let view = clampDate(iso(now()));
+let calc = null;
+
+/* Replays the whole season from the tick record, so XP, streak and rank are always derived, never stored. */
+function compute(st, at){
+  const today = iso(at), yest = addDays(today,-1), graceOpen = at.getHours() < 12;
+  const season = DATES.filter(d => d >= st.start);
+  const days = {}, weeks = {};
+  let xp = 0, streak = 0, maxBase = 0;
+  for(const d of season){
+    const dn = new Set(st.done[d] || []), w = mondayOf(d);
+    const W = weeks[w] || (weeks[w] = {f:[0,0], c:[0,0], g:[0,0]});
+    let base = 0, poss = 0;
+    for(const t of DAYS[d]){
+      poss += t[5]; const hit = dn.has(t[0]); if(hit) base += t[5];
+      if(W[t[4]]){ W[t[4]][0]++; if(hit && d <= today) W[t[4]][1]++; }
+    }
+    maxBase += poss;
+    if(d > today){ days[d] = {status:'future', pct:0, base:0, poss, earned:0, mult:1, closed:false}; continue; }
+    const pct = poss ? base/poss : 1;
+    const closed = d < yest || (d === yest && !graceOpen);
+    const mult = 1 + Math.min(streak,10)*.05;
+    let earned = Math.round(base*mult), status;
+    if(poss && base === poss) earned += PERFECT;
+    if(pct >= HOLD){ streak++; status = base === poss ? 'perfect' : 'held'; }
+    else if(closed){ streak = 0; status = 'broken'; if(pct < FAIL){ earned -= PENALTY; status = 'failed'; } }
+    else status = 'open';
+    xp = Math.max(0, xp + earned);
+    days[d] = {status, pct, base, poss, earned, mult, closed};
+  }
+  for(const w of Object.keys(weeks)) for(const [k] of CONTRACTS){
+    const c = weeks[w][k]; if(!c[0]) continue;
+    c[2] = Math.ceil(c[0]*.8); maxBase += CONTRACT; if(c[1] >= c[2]) xp += CONTRACT;
+  }
+  const th = FRAC.map(f => Math.round(f*maxBase/50)*50);
+  let rank = 0; for(let i = 0; i < th.length; i++) if(xp >= th[i]) rank = i;
+  return {today, yest, graceOpen, days, weeks, xp, streak, th, rank, hhmm: pad(at.getHours())+':'+pad(at.getMinutes())};
+}
+function editable(d, time){
+  if(d < state.start || !DAYS[d]) return false;
+  if(d === calc.today) return time <= calc.hhmm;
+  return d === calc.yest && calc.graceOpen;
+}
+
+function render(){
+  calc = compute(state, now());
+  const c = calc, next = c.rank + 1 < RANKS.length ? c.rank + 1 : null;
+  $('rank').textContent = RANKS[c.rank];
+  const lo = c.th[c.rank], hi = next === null ? lo : c.th[next];
+  const p = next === null ? 100 : Math.max(0, Math.min(100, (c.xp-lo)/(hi-lo)*100));
+  $('rankbar').firstElementChild.style.width = p + '%';
+  $('rankbar').setAttribute('aria-valuenow', Math.round(p));
+  $('xpline').textContent = c.xp.toLocaleString('en-GB') + ' XP';
+  $('nextline').textContent = next === null ? 'Top of the ladder' : (hi-c.xp).toLocaleString('en-GB') + ' XP to ' + RANKS[next];
+  const td = c.days[c.today];
+  $('s-streak').textContent = c.streak + (c.streak === 1 ? ' day' : ' days');
+  $('s-mult').textContent = 'x' + (td ? td.mult : 1 + Math.min(c.streak,10)*.05).toFixed(2);
+  $('s-today').textContent = td ? Math.round(td.pct*100) + '%' : 'Done';
+  $('verdict').innerHTML = verdict(c);
+  renderDay(); renderContracts(); renderGrid(); renderLadder();
+}
+function verdict(c){
+  if(c.today > END) return '<b>Season over.</b> Final rank: ' + esc(RANKS[c.rank]) + '. Term 2 starts 25 Jan.';
+  const y = c.days[c.yest];
+  if(!y) return 'Day one. Tick each block as you finish it. Hit 70% tonight to start a streak.';
+  const pc = Math.round(y.pct*100) + '%';
+  if(!y.closed) return '<b>Yesterday is at ' + pc + '</b> and stays open until 12:00. ' + (y.pct >= HOLD ? 'Streak is safe.' : 'Tick what you really did or the streak breaks.');
+  if(y.status === 'perfect') return '<b>Yesterday: perfect day.</b> +' + PERFECT + ' XP bonus banked.';
+  if(y.status === 'held') return '<b>Yesterday: ' + pc + ', streak held.</b>';
+  if(y.status === 'failed') return '<b>Yesterday: ' + pc + '. Streak broken and ' + PENALTY + ' XP docked.</b> Today resets it.';
+  return '<b>Yesterday: ' + pc + '. Streak broken.</b> Today resets it.';
+}
+function renderDay(){
+  const c = calc, d = view, day = c.days[d], rows = DAYS[d] || [];
+  const rel = d === c.today ? 'Today' : d === c.yest ? 'Yesterday' : d === addDays(c.today,1) ? 'Tomorrow' : '';
+  $('daytitle').innerHTML = esc(rel || fmtDay(d)) + '<span class="sub">' + esc(rel ? fmtDay(d) : (d > c.today ? 'Preview' : 'Locked')) + '</span>';
+  $('prev').disabled = d <= FIRST; $('next').disabled = d >= END; $('totoday').disabled = d === clampDate(c.today);
+  const pct = day ? day.pct : 0;
+  const m = $('meter'); m.classList.toggle('held', pct >= HOLD); m.firstElementChild.style.width = Math.round(pct*100) + '%';
+  const poss = rows.reduce((s,t) => s + t[5], 0);
+  $('metercap').textContent = d < state.start ? 'Before your season started' : (day ? day.base : 0) + ' of ' + poss + ' XP · ' + Math.round(pct*100) + '%';
+  const dn = new Set(state.done[d] || []), pre = d < state.start;
+  $('tasks').innerHTML = rows.map(t => {
+    const [a,b,name,note,cat,xp] = t;
+    if(cat === 'r') return '<li class="task rest"><span class="t">' + a + '</span><span class="n">' + esc(name) + '</span></li>';
+    const done = dn.has(a), can = editable(d,a);
+    const isNow = d === c.today && a <= c.hhmm && c.hhmm < b && b > a;
+    const cls = done ? 'done' : can ? 'open' : (d > c.today || (d === c.today && a > c.hhmm)) ? 'locked' : 'missed';
+    const sub = cls === 'locked' && d === c.today ? 'Unlocks at ' + a : note;
+    return '<li class="task ' + cls + (isNow ? ' now' : '') + '"><span class="t">' + a + '</span>' +
+      '<span class="n"><i class="k ' + cat + '"></i><span class="nm">' + esc(name) + '</span>' + (sub ? '<span class="d">' + esc(sub) + '</span>' : '') + '</span>' +
+      '<span class="x">' + (cls === 'missed' && !pre ? '0/' : done ? '+' : '') + xp + '</span>' +
+      '<button class="tick" data-t="' + a + '" aria-pressed="' + done + '"' + (can ? '' : ' disabled') + ' aria-label="' + esc(name) + (done ? ', done' : can ? ', mark done' : ', locked') + '">' + (done ? '&#10003;' : cls === 'missed' && !pre ? '&times;' : '') + '</button></li>';
+  }).join('');
+}
+function renderContracts(){
+  const wk = calc.weeks[mondayOf(clampDate(calc.today))];
+  if(!wk){ $('contracts').innerHTML = '<p class="verdict">No contracts this week.</p>'; return; }
+  $('contracts').innerHTML = CONTRACTS.filter(([k]) => wk[k][0]).map(([k,name,sub]) => {
+    const [n,done,target] = wk[k], met = done >= target;
+    return '<div class="contract' + (met ? ' met' : '') + '"><span><b>' + name + '</b>' + (sub ? ' <span class="verdict">· ' + sub + '</span>' : '') + '</span>' +
+      '<span class="num">' + done + '/' + target + (met ? ' · +' + CONTRACT : '') + '</span>' +
+      '<div class="bar"><i style="width:' + Math.min(100, done/target*100) + '%"></i></div></div>';
+  }).join('');
+}
+function renderGrid(){
+  let h = ['M','T','W','T','F','S','S'].map(x => '<span class="dow">' + x + '</span>').join('');
+  const lead = (parse(FIRST).getDay()+6)%7;
+  for(let i = 0; i < lead; i++) h += '<span></span>';
+  for(const d of DATES){
+    const day = calc.days[d], st = day ? day.status : 'pre';
+    const title = fmtDay(d) + (day && day.status !== 'future' ? ', ' + Math.round(day.pct*100) + '%' : '');
+    h += '<button class="cell ' + st + (d === view ? ' sel' : '') + (d === calc.today ? ' today' : '') + '" data-d="' + d + '" title="' + esc(title) + '" aria-label="' + esc(title) + '">' + parse(d).getDate() + '</button>';
+  }
+  $('grid').innerHTML = h;
+}
+function renderLadder(){
+  $('ladder').innerHTML = RANKS.map((r,i) => '<li class="' + (i === calc.rank ? 'cur' : i < calc.rank ? 'got' : '') + '"><span>' + r + '</span><span class="num">' + calc.th[i].toLocaleString('en-GB') + ' XP</span></li>').reverse().join('');
+}
+
+let toastT;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200); }
+
+function toggle(d, time){
+  if(!editable(d,time)) return;
+  const before = calc.rank, wasHeld = calc.days[d] && calc.days[d].pct >= HOLD, wasPerfect = calc.days[d] && calc.days[d].status === 'perfect';
+  const s = new Set(state.done[d] || []);
+  s.has(time) ? s.delete(time) : s.add(time);
+  state.done[d] = [...s].sort(); state.t = Date.now();
+  saveLocal(); render(); pushCloud();
+  const day = calc.days[d];
+  if(calc.rank > before) toast('Promoted to ' + RANKS[calc.rank]);
+  else if(calc.rank < before) toast('Demoted to ' + RANKS[calc.rank]);
+  else if(day.status === 'perfect' && !wasPerfect) toast('Perfect day. +' + PERFECT + ' XP');
+  else if(day.pct >= HOLD && !wasHeld) toast('70% reached. Streak held: ' + calc.streak + (calc.streak === 1 ? ' day' : ' days'));
+}
+$('tasks').addEventListener('click', e => { const b = e.target.closest('.tick'); if(b && !b.disabled) toggle(view, b.dataset.t); });
+$('grid').addEventListener('click', e => { const b = e.target.closest('.cell'); if(b){ view = b.dataset.d; render(); } });
+$('prev').addEventListener('click', () => { view = clampDate(addDays(view,-1)); render(); });
+$('next').addEventListener('click', () => { view = clampDate(addDays(view,1)); render(); });
+$('totoday').addEventListener('click', () => { view = clampDate(iso(now())); render(); });
+$('resetbox').addEventListener('click', e => {
+  const id = e.target.id, box = $('resetbox');
+  if(id === 'reset1') box.innerHTML = '<span>Wipe all XP and start from today?</span><button class="danger" id="reset2">Yes, wipe it</button><button id="reset0">Keep my progress</button>';
+  else if(id === 'reset0' || id === 'reset2'){
+    if(id === 'reset2'){ state = fresh(); state.t = Date.now(); saveLocal(); pushCloud(); view = clampDate(iso(now())); render(); toast('Season restarted'); }
+    box.innerHTML = '<button id="reset1">Restart the season</button>';
+  }
+});
+
+/* Cloud save: one private document per signed-in viewer, so phone and laptop share progress. */
+let ref = null, writing = false, dirty = false;
+function setSync(s){ $('sync').textContent = s === 'cloud' ? 'Saved to your account' : s === 'wait' ? 'Connecting...' : 'Saved on this phone'; }
+async function pushCloud(){
+  if(!ref) return;
+  if(writing){ dirty = true; return; }
+  writing = true;
+  try{ do { dirty = false; await ref.set(JSON.parse(JSON.stringify(state))); } while(dirty); setSync('cloud'); }
+  catch(e){ setSync('local'); }
+  writing = false;
+}
+async function initCloud(){
+  if(!window.claude || !window.claude.use){ setSync('local'); return; }
+  setSync('wait');
+  let answered = false;
+  const timer = setTimeout(() => { if(!answered) setSync('local'); }, 10000);
+  try{
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    const id = user ? await user.id() : null;
+    if(!db || !id){ clearTimeout(timer); setSync('local'); return; }
+    ref = db.doc('data/users/' + id + '/save');
+    ref.onSnapshot(snap => {
+      if(snap.metadata.hasPendingWrites) return;
+      if(!snap.metadata.fromCache){ answered = true; clearTimeout(timer); setSync('cloud'); }
+      const remote = snap.exists ? normalize(snap.data()) : null;
+      if(remote && remote.t > state.t){ state = remote; saveLocal(); render(); }
+      else if(!snap.metadata.fromCache && state.t > 0 && (!remote || remote.t < state.t)) pushCloud();
+    }, () => { clearTimeout(timer); ref = null; setSync('local'); });
+  }catch(e){ clearTimeout(timer); ref = null; setSync('local'); }
+}
+
+/* Backup (standalone app only): progress lives on this phone, so offer a code to copy out and paste back. */
+if($('bk-copy')){
+  $('bk-copy').addEventListener('click', async () => {
+    const code = JSON.stringify(state); $('bk-code').value = code;
+    try{ await navigator.clipboard.writeText(code); toast('Backup code copied'); }
+    catch(e){ $('bk-code').focus(); $('bk-code').select(); toast('Code is in the box. Copy it.'); }
+  });
+  $('bk-restore').addEventListener('click', () => {
+    let r = null; try{ r = normalize(JSON.parse($('bk-code').value)); }catch(e){}
+    if(!r){ toast('That is not a backup code'); return; }
+    r.t = Date.now(); state = r; saveLocal(); view = clampDate(iso(now())); render(); $('bk-code').value = ''; toast('Progress restored');
+  });
+}
+if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+render();
+initCloud();
+let lastMin = '';
+setInterval(() => { const n = now(), k = iso(n) + n.getHours() + ':' + n.getMinutes(); if(k !== lastMin){ lastMin = k; render(); } }, 20000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) render(); });
+</script>
+
+</body>
+</html>
